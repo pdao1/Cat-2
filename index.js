@@ -1,95 +1,95 @@
 const express = require('express');
-const axios = require('axios');
-const cheerio = require('cheerio');
 const mongoose = require('mongoose');
-
-const app = express();
-const port = 8000;
+const FormSubmission = require('./models/FormSubmission');
 const path = require('path');
+const app = express();
+const port = 3000;
+const fs = require('fs')
+const bodyParser = require('body-parser');
+const mongoPass = process.env['mongoPass']
 
-const lostSchema = new mongoose.Schema({
-  _id: Number,
-  name: String,
-  breed: String,
-  age: String,
-  gender: String,
-  ogUrl: String,
-  imgUrl: String,
+
+// Connect to MongoDB
+mongoose.connect(`mongodb+srv://pdao:${mongoPass}@atlascluster.9zfnrrz.mongodb.net/Work`, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
 });
 
-const LostCat = mongoose.model('LostCat', lostSchema);
-
-mongoose.connect(
-  'mongodb+srv://pdao:Watacress1!@atlascluster.9zfnrrz.mongodb.net/'
-);
-
-let Lost = new LostCat({
-  _id: 123,
-  name: 'name',
-  age: 'age',
-  gender: 'gender',
-  breed: 'breed',
-  ogUrl: 'ogUrl',
-  imgUrl: 'imgUrl',
-});
-Lost.save();
-
-const url = 'https://hawaiianhumane.org/lost-pets/?speciesID=2';
-const url2 = '';
-app.use(express.static('static'));
-
+// Routes
+// Main page
 app.get('/', (req, res) => {
-  res.sendFile(path.resolve('pages/index.html'));
+	res.sendFile(path.resolve('./public/index.html'))
+})
+// Thank you / confirmation page
+app.get('/confirmation', (req, res) => {
+	res.sendFile(path.resolve('./public/confirmation.html'))
+})
+
+app.get('/admin', (req, res) => {
+	
+		res.sendFile(path.resolve('./public/admin.html'))
+})
+
+
+
+// Middleware
+app.use(express.urlencoded({ extended: false }));
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Routes
+app.post('/submit', async (req, res) => {
+	if (Array.isArray(req.body.option2)) {
+  var opt2toString = req.body.option2.join(',');
+	req.body.option2 = opt2toString
+}
+	const formData = req.body;
+  const timestamp = new Date().toLocaleString()
+  const status = 'submitted';
+  formData.timestamp = timestamp;
+  formData.status = status;
+  const Submission = new FormSubmission({
+	timeStamp: formData.timestamp,
+	status: formData.status,
+	locationVal: req.body.location,
+	appAccountVal: req.body.applicable,
+	accountNameVal: req.body.account,
+	ssnTinVal: req.body.ssn,
+	dateOfTxnVal: req.body.datetxn,
+	dateOfDiscVal: req.body.datediscovered,
+	indivResVal: req.body.indivres,
+	employeeVal: req.body.employee,
+	positionVal: req.body.position,
+	chargeOffAmountVal: req.body.chargeoffamount,
+	cashingLimitVal: req.body.cashinglimit,
+	dropdownOpt1Val: req.body.option1,
+	dropdownOpt2Val: req.body.option2,
+	dropdownOpt2OtherVal: req.body.option2other,
+	dropdownOpt4OtherVal: req.body.option4other,
+	dropdownOpt3Val: req.body.option3,
+	dropdownOpt4Val: req.body.option4,
+	checkInfoMakerVal: req.body.checkinfomaker,
+	checkInfoPayeeVal: req.body.checkinfopayee,
+	checkInfoDrawnOnVal: req.body.checkinfodrawnon,
+	checkInfoOgAmountVal: req.body.checkinfoogamount,
+	checkInfoExpensesVal: req.body.checkinfoplusexpenses,
+	checkInfoRecoveriesVal: req.body.checkinfolessrecoveries,
+	checkInfoNetCoVal: req.body.checkinfonetchargeoff,
+	individualComments: req.body.indivcomments,
+	supervisorComments: req.body.supervisorcomments,
+
+	
+  });
+
+  try {
+    await Submission.save();
+    res.redirect('/confirmation');
+  } catch (err) {
+    res.status(400).send(err);
+  }
 });
 
-app.post('/addname', (req, res) => {
-  res.send('item saved to database');
+// Start server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server started on port ${PORT}`);
 });
-
-app.listen(port, () => {
-  console.log(`Example app listening at http://localhost:${port}`);
-});
-
-// axios(url)
-//   .then((response) => {
-//     const html = response.data;
-//     const $ = cheerio.load(html);
-//     const animalID = [];
-//     const animalURL = [];
-//     $('article', html).each(function () {
-//       const id = $(this).data('id');
-//       const name = $(this).data('name');
-//       const age = $(this).data('agetext');
-//       const gender = $(this).data('gender');
-//       const breed = $(this).data('primarybreed');
-//       const url = $(this).data('detailsurl');
-//       const imgUrl = $('article div').data('bg');
-//       const regex = /(?:pet)/g;
-//       const subst = `pets`;
-//       const ogUrl = url.replace(regex, subst);
-//       animalID.push({
-//         _id: id,
-//         name: name,
-//         age: age,
-//         gender: gender,
-//         breed: breed,
-//         ogUrl: ogUrl,
-//         imgUrl: imgUrl,
-//       });
-//       let Lost = new LostCat({
-//         _id: id,
-//         name: name,
-//         age: age,
-//         gender: gender,
-//         breed: breed,
-//         ogUrl: ogUrl,
-//         imgUrl: imgUrl,
-//       });
-//       Lost.save();
-//     });
-//     let formatted = JSON.stringify(animalID);
-//     console.log(formatted);
-//   })
-//   .catch((err) => console.log(err));
-
-// axios(url2).then((response) => {});
