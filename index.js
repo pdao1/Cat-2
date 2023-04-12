@@ -20,7 +20,7 @@ const s3 = new AWS.S3({
 	accessKeyId: accessKeyId,
 	secretAccessKey: secretAccessKey,
 });
-var itemIds = new Array()
+
 const namesArray = []
 
 const uploadImageFromUrlToS3 = async (imageUrl, bucketName, fileName) => {
@@ -108,40 +108,121 @@ app.listen(PORT, () => {
 	console.log(`Server started on port ${PORT}`);
 });
 
-// Scrape
+
+// Save to fil
+
+
+
+// Read it back
+
+
 
 mongoose.connect('mongodb+srv://phungdao:phung123@geolocats.jcedrpx.mongodb.net/LostCat');
 // const url = 'https://hawaiianhumane.org/lost-pets/?speciesID=2';
 // const url2 = `${id}`
 // create a schema and model for the items
+var itemIds = new Array()
 
 async function createNewLostCat(newLostCat) {
-  try {
-    const result = await LostCat.create(newLostCat);
-    console.log('New document created:', result);
-  } catch (error) {
-    console.error(error);
-  }
+	try {
+		const result = await LostCat.create(newLostCat);
+		console.log('New document created:', result);
+	} catch (error) {
+		console.error(error);
+	}
 }
 
 async function updateCatDetails(id, update) {
-  try {
-    const result = await LostCat.findByIdAndUpdate(id, update, { new: false });
-    console.log('Document updated:', result);
-  } catch (error) {
-    console.error(error);
-  }
+	try {
+		const result = await LostCat.findByIdAndUpdate(id, update, { new: false });
+		console.log('Document updated:', result);
+	} catch (error) {
+		console.error(error);
+	}
 }
 
+fs.readFile('resultArr.txt', 'utf8', function(err, data) {
+	if (err) throw err;
+	const readArray = data.split(',');
+	readArray.forEach(function(item) {
+		console.log(item)
+	})
+	console.log(itemIds);
+});
+
 async function findDocumentsWithNullField(fieldName) {
-  try {
-    const query = { [fieldName]: null };
-    const result = await LostCat.find(query).select('_id');
-    console.log('Documents found:', result);
-  } catch (error) {
-    console.error(error);
-  }
+	var resultArr = []
+	try {
+		const query = { [fieldName]: null };
+		const result = await LostCat.find(query).select('_id');
+		console.log('Documents found:', result);
+		for (key in result) {
+			resultArr.push(result[key]["_id"])
+		}
+		// queue begins
+		const q = async.queue((item, callback) => {
+			console.log(`working on ${item}`);
+			let lostLocation, catColor;
+			// do something
+			url = `https://hawaiianhumane.org/lost-pets-details/?animalID=${item}`
+			console.log(url)
+			axios.get(url)
+				.then((response) => {
+					const html = response.data;
+					const $ = cheerio.load(html);
+					$('article').each(async function() {
+						 lostLocation = $('span.location-lost-value.value.c-1-2').text()
+						 catColor = $('span.color-value.value.c-1-2').text()
+					})
+								console.log(lostLocation, catColor)
+
+				}).catch((err) => {
+					console.error(err);
+				})
+			setTimeout(callback, 15000);
+		}, 1);
+			// do something ends
+		
+		
+		resultArr.forEach((item) => {
+			q.push(item);
+		});
+
+		q.drain(() => {
+			console.log('All items have been processed');
+		});
+		// queue ends
+
+	} catch (error) {
+		console.error(error);
+	}
 }
+// const ids = [1, 2, 3, 4, 5];
+// // Initialize the queue with concurrency of 1
+// const queue = async.queue(function (task, callback) {
+//   // do something with the task
+//   console.log(`Processing task ${task}`);
+// 	console.log(id)
+
+
+// // Function to queue items with a delay
+// function queueItemsWithDelay(ids, delay) {
+//   ids.forEach((id, index) => {
+//     setTimeout(() => {
+//       queue.push(id);
+//     }, index * delay);
+//   });
+// }
+
+// 	fs.writeFile('resultArr.txt', resultArr.join(','), function(err) {
+// if (err) throw err;
+// console.log('Array saved to file!');
+// });
+
+
+let fieldName = 'catColor'
+findDocumentsWithNullField(fieldName)
+
 
 async function checkPetIds() {
 	var url = 'https://hawaiianhumane.org/lost-pets/?speciesID=2'
@@ -168,68 +249,67 @@ async function checkPetIds() {
 				let location = tempLocation.replace(locationRegex, '')
 				let s3imgUrl = `https://phung-stuff.s3.amazonaws.com/${id}`
 				let catID = await LostCat.findById(id).exec()
-				if(catID == null) {
-						console.log(id)
-				let newLostCat = {
-  			_id: id,
-				name: name,
-  			age: age,
-  			gender: gender,
-				breed: breed,
-				ogUrl: ogUrl,
-				imgUrl: imgUrl,
-				location: location,
-				s3imgUrl: s3imgUrl,
-				};
-				createNewLostCat(newLostCat)
-					}
-				})
-			
+				if (catID == null) {
+					console.log(id)
+					let newLostCat = {
+						_id: id,
+						name: name,
+						age: age,
+						gender: gender,
+						breed: breed,
+						ogUrl: ogUrl,
+						imgUrl: imgUrl,
+						location: location,
+						s3imgUrl: s3imgUrl,
+					};
+					createNewLostCat(newLostCat)
+				}
+			})
+
 		})
 		.catch((err) => {
 			console.error(err);
 		})
-} 
-
-async function checkPetDetails() {
-				let fieldName = 'catColor'
-			
-				// findDocumentsWithNullField(fieldName)
-				// console.log(id);		
-				
-				// 		let id = catID._id
-				// 		console.log(id)
-				// console.log(catNull)
-				
-			
-	// var url = `https://hawaiianhumane.org/lost-pets-details/?animalID=${id}`
-	// axios.get(url)
-	// 	.then((response) => {
-	// 		const html = response.data;
-	// 		const $ = cheerio.load(html);
-	// 		$('article').each(async function() {
-	// 			let lostLocation = $('span.location-lost-value.value.c-1-2').text()
-	// 			let	catColor = $('span.color-value.value.c-1-2').text()
-					
-	// 			let update = {
-	// 			lostLocation: lostLocation,
-	// 			catColor: catColor,
-	// 			};
-	// 			updateCatDetails(id, update)
-	// 				}
-				// })
-			
-		// })
-		// .catch((err) => {
-		// 	console.error(err);
-		// })
-	// } 
-
 }
 
 
-function clog(){
-		console.log(itemIds)
+
+// findDocumentsWithNullField(fieldName)
+// console.log(id);		
+
+// 		let id = catID._id
+// 		console.log(id)
+// console.log(catNull)
+
+
+// var url = `https://hawaiianhumane.org/lost-pets-details/?animalID=${id}`
+// axios.get(url)
+// 	.then((response) => {
+// 		const html = response.data;
+// 		const $ = cheerio.load(html);
+// 		$('article').each(async function() {
+// 			let lostLocation = $('span.location-lost-value.value.c-1-2').text()
+// 			let	catColor = $('span.color-value.value.c-1-2').text()
+
+// 			let update = {
+// 			lostLocation: lostLocation,
+// 			catColor: catColor,
+// 			};
+// 			updateCatDetails(id, update)
+// 				}
+// })
+
+// })
+// .catch((err) => {
+// 	console.error(err);
+// })
+// } 
+
+
+
+
+function clog() {
+	console.log(itemIds)
 }
 
 
