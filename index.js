@@ -74,33 +74,33 @@ app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 
-// Save for user-submitted lost cats
+function geocodeAddresses(addresses, callback) {
+	// Create a geocoder object
+	var geocoder = new google.maps.Geocoder();
 
-// // Form Submission Route
-// app.post('/submit', async (req, res) => {
-// 	if (Array.isArray(req.body.option2)) {
-// 		var opt2toString = req.body.option2.join(',');
-// 		req.body.option2 = opt2toString
-// 	}
-// 	const formData = req.body;
-// 	const timestamp = new Date().toLocaleString()
-// 	const status = 'submitted';
-// 	formData.timestamp = timestamp;
-// 	formData.status = status;
+	// Define an array to hold the geocoded results
+	var results = [];
 
-// 	const addLostCat = new LostCat({
-// 		
+	// Iterate over the addresses
+	for (var i = 0; i < addresses.length; i++) {
+		// Geocode the address
+		geocoder.geocode({ address: addresses[i] }, function(response, status) {
+			// If geocoding was successful, add the result to the array
+			if (status === "OK") {
+				results.push(response[0].geometry.location);
+			}
 
-// 	});
+			// If all addresses have been geocoded, call the callback function with the results
+			if (results.length === addresses.length) {
+				callback(results);
+			}
+		});
+	}
+}
 
-// 	try {
-// 		await addLostCat.save();
-// 		res.redirect('/confirmation');
-// 	} catch (err) {
-// 		res.status(400).send(err);
-// 	}
+// geocodeAddresses(addresses, function (results) {
+//   console.log(results);
 // });
-
 
 // Start server
 const PORT = process.env.PORT || 3000;
@@ -132,9 +132,9 @@ async function createNewLostCat(newLostCat) {
 	}
 }
 
-async function updateCatDetails(id, update) {
+async function updateCatDetails(item, update) {
 	try {
-		const result = await LostCat.findByIdAndUpdate(id, update, { new: false });
+		const result = await LostCat.findByIdAndUpdate(item, update, { new: false });
 		console.log('Document updated:', result);
 	} catch (error) {
 		console.error(error);
@@ -149,6 +149,18 @@ fs.readFile('resultArr.txt', 'utf8', function(err, data) {
 	})
 	console.log(itemIds);
 });
+
+async function getAllDocumentsWithIdAndLocation(LostCat) {
+	const documents = await LostCat.find({}, { _id: 1, location: 1, s3imgUrl: 1 });
+	console.log(documents);
+	const geocodeList = [documents]
+	fs.writeFile('geocodeList.txt', documents.join(','), function(err) {
+		if (err) throw err;
+		console.log('Array saved to file!');
+	});
+}
+
+getAllDocumentsWithIdAndLocation(LostCat)
 
 async function findDocumentsWithNullField(fieldName) {
 	var resultArr = []
@@ -171,19 +183,27 @@ async function findDocumentsWithNullField(fieldName) {
 					const html = response.data;
 					const $ = cheerio.load(html);
 					$('article').each(async function() {
-						 lostLocation = $('span.location-lost-value.value.c-1-2').text()
-						 catColor = $('span.color-value.value.c-1-2').text()
+						lostLocation = $('span.location-lost-value.value.c-1-2').text()
+						catColorStr = $('span.color-value.value.c-1-2').text()
+						sub = ``;
+						wsRegex = /\s/g
+						catColor = catColorStr.replace(wsRegex, sub);
 					})
-								console.log(lostLocation, catColor)
-
+					console.log(lostLocation, catColor)
+					update = {
+						lostLocation: lostLocation,
+						catColor: catColor,
+					};
+					updateCatDetails(item, update)
+					console.log(result)
 				}).catch((err) => {
 					console.error(err);
 				})
 			setTimeout(callback, 15000);
 		}, 1);
-			// do something ends
-		
-		
+		// do something ends
+
+
 		resultArr.forEach((item) => {
 			q.push(item);
 		});
@@ -214,14 +234,11 @@ async function findDocumentsWithNullField(fieldName) {
 //   });
 // }
 
-// 	fs.writeFile('resultArr.txt', resultArr.join(','), function(err) {
-// if (err) throw err;
-// console.log('Array saved to file!');
-// });
+// 
 
 
-let fieldName = 'catColor'
-findDocumentsWithNullField(fieldName)
+// let fieldName = 'catColor'
+// findDocumentsWithNullField(fieldName)
 
 
 async function checkPetIds() {
@@ -291,11 +308,7 @@ async function checkPetIds() {
 // 			let lostLocation = $('span.location-lost-value.value.c-1-2').text()
 // 			let	catColor = $('span.color-value.value.c-1-2').text()
 
-// 			let update = {
-// 			lostLocation: lostLocation,
-// 			catColor: catColor,
-// 			};
-// 			updateCatDetails(id, update)
+
 // 				}
 // })
 
