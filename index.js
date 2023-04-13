@@ -45,13 +45,6 @@ const uploadImageFromUrlToS3 = async (imageUrl, bucketName, fileName) => {
 	}
 };
 
-
-// mongoose.connect(`mongodb+srv://phungdao:phung123@geolocats.jcedrpx.mongodb.net/LostCat`, {
-
-// 	useNewUrlParser: true,
-// 	useUnifiedTopology: true
-// });
-
 // Routes
 
 // Main page
@@ -68,39 +61,10 @@ app.get('/map', (req, res) => {
 })
 
 
-
 // Middleware
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-
-function geocodeAddresses(addresses, callback) {
-	// Create a geocoder object
-	var geocoder = new google.maps.Geocoder();
-
-	// Define an array to hold the geocoded results
-	var results = [];
-
-	// Iterate over the addresses
-	for (var i = 0; i < addresses.length; i++) {
-		// Geocode the address
-		geocoder.geocode({ address: addresses[i] }, function(response, status) {
-			// If geocoding was successful, add the result to the array
-			if (status === "OK") {
-				results.push(response[0].geometry.location);
-			}
-
-			// If all addresses have been geocoded, call the callback function with the results
-			if (results.length === addresses.length) {
-				callback(results);
-			}
-		});
-	}
-}
-
-// geocodeAddresses(addresses, function (results) {
-//   console.log(results);
-// });
 
 // Start server
 const PORT = process.env.PORT || 3000;
@@ -141,14 +105,14 @@ async function updateCatDetails(item, update) {
 	}
 }
 
-fs.readFile('resultArr.txt', 'utf8', function(err, data) {
-	if (err) throw err;
-	const readArray = data.split(',');
-	readArray.forEach(function(item) {
-		console.log(item)
-	})
-	console.log(itemIds);
-});
+// fs.readFile('resultArr.txt', 'utf8', function(err, data) {
+// 	if (err) throw err;
+// 	const readArray = data.split(',');
+// 	readArray.forEach(function(item) {
+// 		console.log(item)
+// 	})
+// 	console.log(itemIds);
+// });
 
 async function getAllDocumentsWithIdAndLocation(LostCat) {
 	const documents = await LostCat.find({}, { _id: 1, location: 1, s3imgUrl: 1 });
@@ -160,7 +124,45 @@ async function getAllDocumentsWithIdAndLocation(LostCat) {
 	});
 }
 
-getAllDocumentsWithIdAndLocation(LostCat)
+fs.readFile('geocodeList.txt', 'utf8', function(err, data) {
+			if (err) throw err;
+			const geocodes = data.split(',');
+			geocodes.forEach(function(item) {
+			})
+			console.log(geocodes[3]);
+		});
+
+function geocodeAddresses(addresses, callback) {
+	// Create a geocoder object
+	var geocoder = new google.maps.Geocoder();
+
+	// Define an array to hold the geocoded results
+	var results = [];
+	
+	
+	// Iterate over the addresses
+	for (var i = 0; i < addresses.length; i++) {
+		// Geocode the address
+		geocoder.geocode({ address: addresses[i] }, function(response, status) {
+			// If geocoding was successful, add the result to the array
+			if (status === "OK") {
+				results.push(response[0].geometry.location);
+			}
+
+			// If all addresses have been geocoded, call the callback function with the results
+			if (results.length === addresses.length) {
+				callback(results);
+			}
+		});
+	}
+}
+
+// geocodeAddresses(addresses, function (results) {
+//   console.log(results);
+// });
+
+
+// getAllDocumentsWithIdAndLocation(LostCat)
 
 async function findDocumentsWithNullField(fieldName) {
 	var resultArr = []
@@ -217,24 +219,6 @@ async function findDocumentsWithNullField(fieldName) {
 		console.error(error);
 	}
 }
-// const ids = [1, 2, 3, 4, 5];
-// // Initialize the queue with concurrency of 1
-// const queue = async.queue(function (task, callback) {
-//   // do something with the task
-//   console.log(`Processing task ${task}`);
-// 	console.log(id)
-
-
-// // Function to queue items with a delay
-// function queueItemsWithDelay(ids, delay) {
-//   ids.forEach((id, index) => {
-//     setTimeout(() => {
-//       queue.push(id);
-//     }, index * delay);
-//   });
-// }
-
-// 
 
 
 // let fieldName = 'catColor'
@@ -293,33 +277,6 @@ async function checkPetIds() {
 
 // findDocumentsWithNullField(fieldName)
 // console.log(id);		
-
-// 		let id = catID._id
-// 		console.log(id)
-// console.log(catNull)
-
-
-// var url = `https://hawaiianhumane.org/lost-pets-details/?animalID=${id}`
-// axios.get(url)
-// 	.then((response) => {
-// 		const html = response.data;
-// 		const $ = cheerio.load(html);
-// 		$('article').each(async function() {
-// 			let lostLocation = $('span.location-lost-value.value.c-1-2').text()
-// 			let	catColor = $('span.color-value.value.c-1-2').text()
-
-
-// 				}
-// })
-
-// })
-// .catch((err) => {
-// 	console.error(err);
-// })
-// } 
-
-
-
 
 function clog() {
 	console.log(itemIds)

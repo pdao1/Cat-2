@@ -2,11 +2,13 @@
   _id: 52289832,
   location: 'Kapolei',
   s3imgUrl: 'https://phung-stuff.s3.amazonaws.com/52289832'
-},{
+},
+{
   _id: 52266146,
   location: 'Kaneohe',
   s3imgUrl: 'https://phung-stuff.s3.amazonaws.com/52266146'
-},{
+},
+{
   _id: 52319373,
   location: 'Ewa Beach',
   s3imgUrl: 'https://phung-stuff.s3.amazonaws.com/52319373'
